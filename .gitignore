@@ -1,0 +1,51 @@
+# --- Rust ---
+rust/target/
+**/*.rs.bk
+Cargo.toml.orig
+
+# --- Java / Gradle ---
+java/.gradle/
+java/build/
+java/out/
+java/bin/
+.gradle/
+build/
+
+# --- IDE ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Runtime / local Minecraft server (never commit a live world) ---
+sparkmc.json
+eula.txt
+server.jar
+server.properties
+ops.json
+whitelist.json
+banned-*.json
+usercache.json
+usernamecache.json
+libraries/
+versions/
+logs/
+world/
+world_*/
+mods/
+plugins/
+config/
+crash-reports/
+*.log
+*.tmp
