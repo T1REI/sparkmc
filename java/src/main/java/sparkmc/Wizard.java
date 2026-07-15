@@ -1,14 +1,11 @@
 package sparkmc;
 
 import sparkmc.model.Core;
-import sparkmc.model.FlagPreset;
 import sparkmc.model.LoaderChannel;
-import sparkmc.model.Prepared;
 import sparkmc.model.ServerConfig;
 import sparkmc.net.Providers;
 import sparkmc.util.Ansi;
 import sparkmc.util.Reporter;
-import sparkmc.util.Util;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -23,7 +20,7 @@ public final class Wizard {
 
     private Wizard() {}
 
-    public static void run(Path dir) {
+    public static void run(Path dir, List<String> passthrough) {
         banner();
         Core core = pickCore();
         if (core == null) {
@@ -54,27 +51,8 @@ public final class Wizard {
                 return;
             }
         }
-        FlagPreset preset = pickFlags();
-        if (preset == null) {
-            return;
-        }
-        String customFlags = "";
-        if (preset == FlagPreset.Custom) {
-            customFlags = readLine("Custom JVM flags");
-            if (customFlags == null || customFlags.isBlank()) {
-                err("custom flags cannot be empty");
-                waitEnter();
-                return;
-            }
-        }
-        Integer ram = pickRam();
-        if (ram == null) {
-            return;
-        }
-        boolean noGui = confirm("No GUI (--nogui)?", true);
-        boolean autoRestart = confirm("Auto restart on crash?", true);
 
-        ServerConfig cfg = new ServerConfig(core, version, channel, preset, customFlags, ram, noGui, autoRestart);
+        ServerConfig cfg = new ServerConfig(core, version, channel);
         System.out.println();
         info("Review");
         row("core", cfg.core().label());
@@ -82,10 +60,6 @@ public final class Wizard {
         if (cfg.channel() != null) {
             row("channel", cfg.channel().label());
         }
-        row("flags", cfg.preset().label());
-        row("ram", cfg.ramMb() + " MB");
-        row("nogui", cfg.noGui() ? "yes" : "no");
-        row("restart", cfg.autoRestart() ? "yes" : "no");
         System.out.println();
         if (!confirm("Launch setup now?", true)) {
             info("Cancelled");
@@ -94,11 +68,10 @@ public final class Wizard {
 
         Reporter rep = new Reporter();
         try {
-            Prepared prepared = Setup.run(dir, cfg, rep);
-            LaunchPlan plan = LaunchPlan.fromConfig(cfg, prepared, dir);
+            LaunchPlan plan = Setup.run(dir, cfg, rep);
             plan.save(dir);
             info("Configuration saved. Starting server console...");
-            ConsoleApp.run(dir);
+            ConsoleApp.run(dir, passthrough);
         } catch (Exception e) {
             err(e.getMessage());
             waitEnter();
@@ -128,16 +101,6 @@ public final class Wizard {
             labels[i] = items[i].label();
         }
         Integer idx = pickIndex("Forge/NeoForge channel", labels, 0);
-        return idx == null ? null : items[idx];
-    }
-
-    private static FlagPreset pickFlags() {
-        FlagPreset[] items = FlagPreset.all();
-        String[] labels = new String[items.length];
-        for (int i = 0; i < items.length; i++) {
-            labels[i] = items[i].label();
-        }
-        Integer idx = pickIndex("JVM flags preset", labels, 0);
         return idx == null ? null : items[idx];
     }
 
@@ -194,40 +157,6 @@ public final class Wizard {
         return prefix;
     }
 
-    private static Integer pickRam() {
-        while (true) {
-            System.out.println(Ansi.YELLOW + "[sparkmc]" + Ansi.RESET + " " + Ansi.WHITE + "RAM in MB "
-                    + Ansi.GRAY + "[4096]" + Ansi.RESET);
-            prompt();
-            String input = readRaw();
-            if (input == null) {
-                return null;
-            }
-            int value;
-            if (input.isBlank()) {
-                value = 4096;
-            } else {
-                try {
-                    value = Integer.parseInt(input.trim());
-                } catch (NumberFormatException e) {
-                    err("enter a number between 1024 and 65536");
-                    continue;
-                }
-                if (value < 1024 || value > 65536) {
-                    err("enter a number between 1024 and 65536");
-                    continue;
-                }
-            }
-            long heap = Util.heapMb(value);
-            if (heap < Util.MIN_HEAP_MB) {
-                err("heap would be " + heap + " MB (min " + Util.MIN_HEAP_MB + "), pick more RAM");
-                continue;
-            }
-            info("heap ≈ " + heap + " MB");
-            return value;
-        }
-    }
-
     private static Integer pickIndex(String title, String[] labels, int def) {
         System.out.println(Ansi.CYAN + title + Ansi.RESET);
         for (int i = 0; i < labels.length; i++) {
@@ -270,12 +199,6 @@ public final class Wizard {
         }
         String a = input.trim().toLowerCase(Locale.ROOT);
         return a.startsWith("y") || a.startsWith("д");
-    }
-
-    private static String readLine(String promptText) {
-        System.out.println(Ansi.YELLOW + "[sparkmc]" + Ansi.RESET + " " + Ansi.WHITE + promptText + Ansi.RESET);
-        prompt();
-        return readRaw();
     }
 
     private static void waitEnter() {

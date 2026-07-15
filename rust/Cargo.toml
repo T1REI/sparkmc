@@ -1,6 +1,6 @@
 [package]
 name = "sparkmc"
-version = "0.1.0"
+version = "0.0.2"
 edition = "2021"
 authors = ["T1REI"]
 description = "sparkmc - fast and lightweight Minecraft server setup & console"

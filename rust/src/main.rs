@@ -7,6 +7,7 @@ mod net;
 mod plan;
 mod setup;
 mod term;
+mod update;
 mod util;
 mod wizard;
 
@@ -37,6 +38,7 @@ fn main() {
             }
         }
         Some("--run") => {
+            update::check_and_offer();
             console::run(&dir);
         }
         Some("--help") | Some("-h") => {
@@ -48,6 +50,7 @@ fn main() {
             process::exit(2);
         }
         None => {
+            update::check_and_offer();
             if plan::exists(&dir) {
                 console::run(&dir);
             } else {

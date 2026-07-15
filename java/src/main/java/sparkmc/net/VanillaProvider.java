@@ -15,7 +15,7 @@ final class VanillaProvider implements Provider {
 
     @Override
     public List<String> versions() throws Exception {
-        Manifest m = Http.getJson(MANIFEST, Manifest.class);
+        Manifest m = NetUtil.getJson(MANIFEST, Manifest.class);
         List<String> out = new ArrayList<>();
         for (Entry e : m.versions) {
             if ("release".equals(e.type)) {
@@ -28,7 +28,7 @@ final class VanillaProvider implements Provider {
     @Override
     public LaunchTarget prepare(String version, LoaderChannel channel, Path dir, Reporter rep)
             throws Exception {
-        Manifest m = Http.getJson(MANIFEST, Manifest.class);
+        Manifest m = NetUtil.getJson(MANIFEST, Manifest.class);
         Entry entry = null;
         for (Entry e : m.versions) {
             if (version.equals(e.id)) {
@@ -39,7 +39,7 @@ final class VanillaProvider implements Provider {
         if (entry == null) {
             throw new IllegalStateException("version " + version + " not found");
         }
-        VersionMeta meta = Http.getJson(entry.url, VersionMeta.class);
+        VersionMeta meta = NetUtil.getJson(entry.url, VersionMeta.class);
         if (meta.downloads == null || meta.downloads.server == null) {
             throw new IllegalStateException("no server jar available for " + version);
         }

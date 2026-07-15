@@ -1,8 +1,6 @@
 package sparkmc;
 
-import sparkmc.model.Core;
 import sparkmc.model.LaunchTarget;
-import sparkmc.model.Prepared;
 import sparkmc.model.ServerConfig;
 import sparkmc.net.Providers;
 import sparkmc.net.RequiredJava;
@@ -19,7 +17,7 @@ public final class Setup {
 
     private Setup() {}
 
-    public static Prepared run(Path dir, ServerConfig cfg, Reporter rep) throws Exception {
+    public static LaunchPlan run(Path dir, ServerConfig cfg, Reporter rep) throws Exception {
         rep.log("Accepting EULA (eula.txt)");
         Files.writeString(dir.resolve("eula.txt"), EULA);
 
@@ -41,6 +39,6 @@ public final class Setup {
             rep.log("Server requires Java " + requiredJava);
         }
         rep.log("Setup complete");
-        return new Prepared(target, requiredJava);
+        return LaunchPlan.fromConfig(cfg, target, requiredJava, dir);
     }
 }

@@ -1,169 +1,120 @@
 # sparkmc
 
-**Fast console tool for Minecraft server setup & management.**
+Console tool that sets up and runs a Minecraft server. Pick a core, type a version, and it downloads everything, writes the config and keeps a live console attached to the server process.
 
-Two implementations in one monorepo:
+Two editions in one repo, same idea:
 
 | Path | Language | Artifact |
 |------|----------|----------|
-| [`rust/`](rust/) | Rust | native binary `sparkmc` |
-| [`java/`](java/) | Java 17 | fat JAR `sparkmc.jar` |
+| `rust/` | Rust | native binary `sparkmc` / `sparkmc.exe` |
+| `java/` | Java 17+ | `sparkmc.jar` |
 
-[![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust)](https://www.rust-lang.org/)
-[![Java](https://img.shields.io/badge/Java-17%2B-orange?logo=openjdk)](https://adoptium.net/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Current version: **0.0.2**
 
----
+## Features
 
-## What it does
+- Cores: Vanilla, Forge, Fabric, NeoForge, Paper, Purpur
+- Versions are typed as text (`1.20.1`), not picked from numbered lists
+- Forge / NeoForge: Recommended or Latest channel
+- Paper via Fill API v3
+- Config stored in `sparkmc.json` in the server folder
+- Checks that the required Java version is present before starting the server
+- Update check on start against GitHub Releases, with optional self-update (you can always say no)
+- Closing the console stops the server process — no orphaned JVMs
 
-Interactive **console wizard** + **live server console**:
+Edition differences:
 
-- Cores: **Vanilla · Forge · Fabric · NeoForge · Paper · Purpur**
-- Type versions as text (`1.20.1`), not list indexes  
-- Forge / NeoForge: **Recommended** or **Latest**  
-- Paper via **Fill API v3**  
-- Editable `sparkmc.json` (settings first)  
-- Detect / download required Java (Temurin)  
-- Closing the console stops the server process (hooks + watchdog)
+- **Java edition**: no RAM / flags / GUI questions in the wizard. The JVM flags you use to launch `sparkmc.jar` are forwarded to the server JVM, and extra arguments are forwarded to the server. Example:
 
-Both editions share the same UX and config shape.
+  ```bash
+  java -Xmx4G -XX:+UseG1GC -jar sparkmc.jar --nogui
+  ```
 
----
+  It does not download Java for you — if the server needs a newer Java, it tells you which one and where to get it.
 
-## Choose an edition
+- **Rust edition**: the wizard asks about RAM, flag presets (Aikar and others), `--nogui` and auto-restart, and can download the required Java (Temurin) if it's missing.
 
-| | **Rust** | **Java** |
-|--|----------|----------|
-| Best for | smallest native binary, max speed | run anywhere with JDK, no cargo |
-| Needs | Rust toolchain | JDK 17+ |
-| Output | `sparkmc` / `sparkmc.exe` | `sparkmc.jar` |
-| Folder | [`rust/`](rust/) | [`java/`](java/) |
+## Changelog
 
----
+### 0.0.2
 
-## Quick start — Rust
+- Java: removed RAM, flag preset, No GUI and auto-restart steps from the wizard. Flags and arguments now come from how you launch the jar itself and are forwarded to the server process.
+- Java: removed automatic Java download. The check for the required Java version stays — if it's missing you get a message with the needed version.
+- Java: removed `Http.java`, HTTP helpers merged into `NetUtil`.
+- Both: added update check on start (GitHub Releases) and self-update with a yes/no prompt.
+- Docs merged into this single README.
+
+### 0.0.1
+
+- Initial release: setup wizard, live console, six cores, process guard.
+
+## Build & run
+
+### Rust
 
 ```bash
 cd rust
 cargo build --release
-# binary: rust/target/release/sparkmc  (+ .exe on Windows)
-
-./target/release/sparkmc
-# Windows:
-# .\target\release\sparkmc.exe
+./target/release/sparkmc        # Windows: .\target\release\sparkmc.exe
 ```
 
----
+Needs a stable Rust toolchain ([rustup](https://rustup.rs/)).
 
-## Quick start — Java
+### Java
 
 ```bash
 cd java
-./gradlew jar          # Linux / macOS
-# Windows: .\gradlew.bat jar
-
+./gradlew jar                   # Windows: .\gradlew.bat jar
 java -jar build/libs/sparkmc.jar
 ```
 
----
+Needs JDK 17+.
 
-## Usage (both)
+## Usage
 
-1. Run the binary/jar in an empty server folder  
-2. Wizard: core → version → (channel) → flags → RAM → options  
-3. Server downloads & installs  
-4. Console stays open (`>` prompt for commands)  
-5. Delete `sparkmc.json` to reconfigure  
-
-```text
-[sparkmc] version [1.21.1]
-> 1.20.1
-[sparkmc] selected 1.20.1
-```
-
-```text
-> list
-> stop
-```
+1. Run the binary/jar in an empty folder
+2. Answer the wizard: core → version → (channel for Forge/NeoForge)
+3. The server downloads and installs, then the console opens
+4. Type server commands at the `>` prompt (`list`, `stop`, ...)
+5. Delete `sparkmc.json` to run the wizard again
 
 ### CLI
 
 ```text
-sparkmc                 # wizard or run existing plan
-sparkmc --run           # force console from sparkmc.json
+sparkmc            # wizard, or run the existing server if sparkmc.json exists
+sparkmc --run      # skip the wizard, run from sparkmc.json
 sparkmc --help
 ```
 
-Java:
+Java edition:
 
 ```bash
-java -jar sparkmc.jar
+java [jvm flags] -jar sparkmc.jar [server args]
 java -jar sparkmc.jar --run
 java -jar sparkmc.jar --help
 ```
 
----
-
 ## `sparkmc.json`
 
-Created in the working directory. Settings first for easy edits:
+Java edition:
 
 ```json
 {
   "core": "Paper",
   "version": "1.21.1",
   "channel": null,
-  "flags": "Aikar",
-  "ram_mb": 4096,
-  "no_gui": true,
-  "auto_restart": false,
   "target": "server.jar",
-  "required_java": 21,
-  "java": null
+  "required_java": 21
 }
 ```
 
-Compatible idea across both implementations (field names may differ slightly by language serialization, but purpose is the same).
-
----
-
-## Repository layout
-
-```text
-sparkmc/
-├── README.md                 ← you are here
-├── LICENSE
-├── CONTRIBUTING.md
-├── .gitignore
-├── .github/workflows/
-│   └── build.yml             ← CI for rust + java
-├── rust/                     ← native Rust edition
-│   ├── Cargo.toml
-│   └── src/
-└── java/                     ← Java 17 edition
-    ├── build.gradle.kts
-    ├── gradlew*
-    └── src/main/java/sparkmc/
-```
-
----
-
-## Requirements
-
-**Rust edition:** [rustup](https://rustup.rs/) (stable)  
-**Java edition:** [JDK 17+](https://adoptium.net/)  
-**Both:** network access for downloads  
-
----
+Rust edition additionally stores `flags`, `ram_mb`, `no_gui`, `auto_restart` and `java` since its wizard configures them.
 
 ## Notes
 
-- Setup writes `eula=true` — you agree to the [Minecraft EULA](https://aka.ms/MinecraftEULA).
-- Forge cleanup keeps `*-shim.jar` (required to launch modern Forge).
-- Process guard aims to prevent orphaned server JVMs when the console is closed (Windows / Linux / macOS).
-
----
+- Setup writes `eula=true` — by using this you agree to the [Minecraft EULA](https://aka.ms/MinecraftEULA).
+- Forge cleanup keeps `*-shim.jar` — it's required to launch modern Forge.
+- Self-update replaces the binary/jar in place. On Windows the running jar can't be replaced directly, so the Java edition applies the update right after you close it.
 
 ## License
 

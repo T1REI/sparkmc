@@ -1,6 +1,8 @@
 package sparkmc;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Main {
     public static void main(String[] args) {
@@ -10,23 +12,25 @@ public final class Main {
             ProcessGuard.killCurrent();
         });
 
-        Path dir = Path.of("").toAbsolutePath();
-        if (args.length == 0) {
-            if (LaunchPlan.exists(dir)) {
-                ConsoleApp.run(dir);
-            } else {
-                Wizard.run(dir);
+        boolean forceRun = false;
+        List<String> passthrough = new ArrayList<>();
+        for (String arg : args) {
+            switch (arg) {
+                case "--run" -> forceRun = true;
+                case "--help", "-h" -> {
+                    printHelp();
+                    return;
+                }
+                default -> passthrough.add(arg);
             }
-            return;
         }
-        switch (args[0]) {
-            case "--run" -> ConsoleApp.run(dir);
-            case "--help", "-h" -> printHelp();
-            default -> {
-                System.err.println("unknown argument: " + args[0]);
-                printHelp();
-                System.exit(2);
-            }
+
+        Path dir = Path.of("").toAbsolutePath();
+        Updater.checkAndOffer();
+        if (forceRun || LaunchPlan.exists(dir)) {
+            ConsoleApp.run(dir, passthrough);
+        } else {
+            Wizard.run(dir, passthrough);
         }
     }
 
@@ -36,9 +40,13 @@ public final class Main {
                 sparkmc - Minecraft server setup & console (Java)
 
                 Usage:
-                  java -jar sparkmc.jar           interactive setup or run existing server
-                  java -jar sparkmc.jar --run     run server from sparkmc.json
-                  java -jar sparkmc.jar --help    show this help
+                  java [jvm flags] -jar sparkmc.jar [args]   interactive setup or run existing server
+                  java -jar sparkmc.jar --run                run server from sparkmc.json
+                  java -jar sparkmc.jar --help               show this help
+
+                JVM flags used to launch sparkmc.jar are forwarded to the server JVM.
+                Any other [args] are forwarded too: -X*/-D*/--add-* style go before -jar,
+                the rest are appended as server arguments.
                 """);
     }
 }

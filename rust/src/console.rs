@@ -317,11 +317,7 @@ fn confirm(inputs: &Receiver<InMsg>) -> bool {
 
 fn wait_enter(io: &ConsoleIo, inputs: &Receiver<InMsg>) {
     io.set_prompt_enabled(true);
-    loop {
-        match inputs.recv() {
-            Ok(InMsg::Line(_)) | Ok(InMsg::Quit) | Err(_) => break,
-        }
-    }
+    let _ = inputs.recv();
     io.set_prompt_enabled(false);
 }
 

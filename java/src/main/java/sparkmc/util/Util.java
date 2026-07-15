@@ -5,14 +5,9 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public final class Util {
-    public static final long MIN_HEAP_MB = 512;
     private static final Pattern NON_DIGIT = Pattern.compile("[^0-9]+");
 
     private Util() {}
-
-    public static long heapMb(int totalMb) {
-        return (11L * totalMb) / 12L - 1200L;
-    }
 
     public static int cmpVersion(String a, String b) {
         List<Long> pa = parts(a);

@@ -1,7 +1,6 @@
 package sparkmc;
 
 import sparkmc.util.Ansi;
-import sparkmc.util.Reporter;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -34,6 +33,10 @@ public final class ConsoleApp {
     private ConsoleApp() {}
 
     public static void run(Path dir) {
+        run(dir, List.of());
+    }
+
+    public static void run(Path dir, List<String> extraArgs) {
         ProcessGuard.install();
         installLocalHook();
 
@@ -65,7 +68,7 @@ public final class ConsoleApp {
         inputThread.start();
 
         while (!SHUTTING_DOWN.get() && !stdinDead.get()) {
-            List<String> args = plan.args();
+            List<String> args = plan.args(extraArgs);
             system(program + " " + String.join(" ", args));
 
             Process process;
@@ -165,18 +168,9 @@ public final class ConsoleApp {
                 continue;
             }
 
-            if (!plan.auto_restart) {
-                system("server stopped, press Enter to close");
-                waitEnter(inputQueue);
-                return;
-            }
-            system("restarting in 5 seconds... close this window to cancel");
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
+            system("server stopped, press Enter to close");
+            waitEnter(inputQueue);
+            return;
         }
     }
 
@@ -265,34 +259,13 @@ public final class ConsoleApp {
             waitEnter(inputQueue);
             return null;
         }
+        tried.add(major);
         system("Java " + major + " not found on this system");
         println(Ansi.YELLOW + "[sparkmc] This server needs Java " + major
-                + ". Download & install it now? [Y/n]" + Ansi.RESET);
-        printPrompt();
-        String answer = readFrom(inputQueue);
-        if (answer == null || EOF.equals(answer)) {
-            return null;
-        }
-        String a = answer.trim().toLowerCase(Locale.ROOT);
-        if (!(a.isEmpty() || a.startsWith("y") || a.startsWith("д"))) {
-            system("cannot start without the right Java. Press Enter to close");
-            waitEnter(inputQueue);
-            return null;
-        }
-        tried.add(major);
-        Reporter rep = new Reporter();
-        try {
-            Path path = JavaRuntime.install(major, rep);
-            String program = path.toString();
-            plan.java = program;
-            plan.save(dir);
-            system("Java ready - restarting server with new runtime");
-            return program;
-        } catch (Exception e) {
-            system("Java install failed: " + e.getMessage());
-            waitEnter(inputQueue);
-            return null;
-        }
+                + ". Install it (e.g. https://adoptium.net) and run sparkmc again." + Ansi.RESET);
+        system("press Enter to close");
+        waitEnter(inputQueue);
+        return null;
     }
 
     private static void system(String msg) {

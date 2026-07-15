@@ -19,7 +19,7 @@ final class NeoForgeProvider implements Provider {
 
     @Override
     public List<String> versions() throws Exception {
-        VersionList list = Http.getJson(VERSIONS, VersionList.class);
+        VersionList list = NetUtil.getJson(VERSIONS, VersionList.class);
         Map<String, List<String>> map = buildsPerMc(list.versions);
         List<String> mc = new ArrayList<>(map.keySet());
         mc.sort((a, b) -> Util.cmpVersion(b, a));
@@ -29,7 +29,7 @@ final class NeoForgeProvider implements Provider {
     @Override
     public LaunchTarget prepare(String version, LoaderChannel channel, Path dir, Reporter rep)
             throws Exception {
-        VersionList list = Http.getJson(VERSIONS, VersionList.class);
+        VersionList list = NetUtil.getJson(VERSIONS, VersionList.class);
         LoaderChannel ch = channel == null ? LoaderChannel.Recommended : channel;
         Map<String, List<String>> map = buildsPerMc(list.versions);
         List<String> builds = map.get(version);

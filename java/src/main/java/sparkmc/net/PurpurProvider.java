@@ -14,7 +14,7 @@ final class PurpurProvider implements Provider {
 
     @Override
     public List<String> versions() throws Exception {
-        Project project = Http.getJson(BASE, Project.class);
+        Project project = NetUtil.getJson(BASE, Project.class);
         List<String> versions = new ArrayList<>(project.versions);
         Collections.reverse(versions);
         return versions;
@@ -23,7 +23,7 @@ final class PurpurProvider implements Provider {
     @Override
     public LaunchTarget prepare(String version, LoaderChannel channel, Path dir, Reporter rep)
             throws Exception {
-        VersionInfo info = Http.getJson(BASE + "/" + version, VersionInfo.class);
+        VersionInfo info = NetUtil.getJson(BASE + "/" + version, VersionInfo.class);
         String url = BASE + "/" + version + "/" + info.builds.latest + "/download";
         Path path = dir.resolve("server.jar");
         NetUtil.downloadLogged(url, path, rep);

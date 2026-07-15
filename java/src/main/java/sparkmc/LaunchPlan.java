@@ -3,18 +3,17 @@ package sparkmc;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import sparkmc.model.Core;
-import sparkmc.model.FlagPreset;
 import sparkmc.model.LaunchTarget;
 import sparkmc.model.LoaderChannel;
-import sparkmc.model.Prepared;
 import sparkmc.model.ServerConfig;
-import sparkmc.util.Util;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class LaunchPlan {
     private static final String FILE = "sparkmc.json";
@@ -23,11 +22,6 @@ public final class LaunchPlan {
     public Core core = Core.Vanilla;
     public String version = "";
     public LoaderChannel channel;
-    public FlagPreset flags = FlagPreset.Aikar;
-    public String custom_flags = "";
-    public int ram_mb = 4096;
-    public boolean no_gui = true;
-    public boolean auto_restart = true;
     public String target = "";
     public Integer required_java;
     public String java;
@@ -37,18 +31,13 @@ public final class LaunchPlan {
     public String program;
     public List<String> args;
 
-    public static LaunchPlan fromConfig(ServerConfig cfg, Prepared prepared, Path dir) {
+    public static LaunchPlan fromConfig(ServerConfig cfg, LaunchTarget target, Integer requiredJava, Path dir) {
         LaunchPlan plan = new LaunchPlan();
         plan.core = cfg.core();
         plan.version = cfg.version();
         plan.channel = cfg.channel();
-        plan.flags = cfg.preset();
-        plan.custom_flags = cfg.customFlags();
-        plan.ram_mb = cfg.ramMb();
-        plan.no_gui = cfg.noGui();
-        plan.auto_restart = cfg.autoRestart();
-        plan.required_java = prepared.requiredJava();
-        plan.target = toTargetString(prepared.target(), dir);
+        plan.target = toTargetString(target, dir);
+        plan.required_java = requiredJava;
         return plan;
     }
 
@@ -60,30 +49,34 @@ public final class LaunchPlan {
     }
 
     public String program() {
-        if (java != null && !java.isBlank()) {
-            return java;
-        }
         if (program != null && !program.isBlank()) {
             return program;
+        }
+        String home = System.getProperty("java.home");
+        if (home != null && !home.isBlank()) {
+            boolean win = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+            Path java = Path.of(home, "bin", win ? "java.exe" : "java");
+            if (Files.isRegularFile(java)) {
+                return java.toString();
+            }
         }
         return "java";
     }
 
-    public List<String> args() {
-        long heap = Math.max(Util.heapMb(Math.max(ram_mb, 1024)), Util.MIN_HEAP_MB);
-        List<String> out = new ArrayList<>();
-        for (String f : flags.jvmFlags()) {
-            out.add(f);
-        }
-        out.add("-Xms" + heap + "M");
-        out.add("-Xmx" + heap + "M");
-        if (flags == FlagPreset.Custom && custom_flags != null) {
-            for (String p : custom_flags.trim().split("\\s+")) {
-                if (!p.isBlank()) {
-                    out.add(p);
+    public List<String> args(List<String> extraArgs) {
+        List<String> jvm = new ArrayList<>(ManagementFactory.getRuntimeMXBean().getInputArguments());
+        List<String> server = new ArrayList<>();
+        if (extraArgs != null) {
+            for (String a : extraArgs) {
+                if (isJvmFlag(a)) {
+                    jvm.add(a);
+                } else {
+                    server.add(a);
                 }
             }
         }
+
+        List<String> out = new ArrayList<>(jvm);
         String t = target == null ? "" : target.trim();
         if (t.startsWith("@")) {
             out.add(t);
@@ -91,12 +84,26 @@ public final class LaunchPlan {
             out.add("-jar");
             out.add(t);
         } else if (args != null && !args.isEmpty()) {
-            return new ArrayList<>(args);
+            out = new ArrayList<>(args);
         }
-        if (no_gui) {
-            out.add(core.noguiArg());
-        }
+        out.addAll(server);
         return out;
+    }
+
+    private static boolean isJvmFlag(String arg) {
+        return arg.startsWith("-X")
+                || arg.startsWith("-D")
+                || arg.startsWith("-javaagent:")
+                || arg.startsWith("-agentlib:")
+                || arg.startsWith("-agentpath:")
+                || arg.startsWith("-verbose")
+                || arg.startsWith("--add-")
+                || arg.startsWith("--enable-")
+                || arg.startsWith("--patch-module")
+                || arg.startsWith("--module-path")
+                || arg.startsWith("--upgrade-module-path")
+                || arg.startsWith("--limit-modules")
+                || arg.startsWith("--illegal-access");
     }
 
     public void save(Path dir) throws IOException {
@@ -112,14 +119,8 @@ public final class LaunchPlan {
         if ((plan.target == null || plan.target.isBlank()) && plan.args != null) {
             plan.target = extractTarget(plan.args);
         }
-        if (plan.ram_mb == 0) {
-            plan.ram_mb = 4096;
-        }
         if (plan.core == null) {
             plan.core = Core.Vanilla;
-        }
-        if (plan.flags == null) {
-            plan.flags = FlagPreset.Aikar;
         }
         return plan;
     }

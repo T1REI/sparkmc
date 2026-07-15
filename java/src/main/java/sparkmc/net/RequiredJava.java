@@ -12,10 +12,10 @@ public final class RequiredJava {
 
     public static Integer forMcVersion(String mcVersion) {
         try {
-            Manifest m = Http.getJson(MANIFEST, Manifest.class);
+            Manifest m = NetUtil.getJson(MANIFEST, Manifest.class);
             for (Entry e : m.versions) {
                 if (mcVersion.equals(e.id)) {
-                    VersionMeta meta = Http.getJson(e.url, VersionMeta.class);
+                    VersionMeta meta = NetUtil.getJson(e.url, VersionMeta.class);
                     if (meta.javaVersion != null) {
                         return meta.javaVersion.majorVersion;
                     }

@@ -20,7 +20,7 @@ final class ForgeProvider implements Provider {
 
     @Override
     public List<String> versions() throws Exception {
-        Promotions data = Http.getJson(PROMOS, Promotions.class);
+        Promotions data = NetUtil.getJson(PROMOS, Promotions.class);
         Set<String> set = new LinkedHashSet<>();
         for (String key : data.promos.keySet()) {
             int idx = key.lastIndexOf('-');
@@ -36,7 +36,7 @@ final class ForgeProvider implements Provider {
     @Override
     public LaunchTarget prepare(String version, LoaderChannel channel, Path dir, Reporter rep)
             throws Exception {
-        Promotions data = Http.getJson(PROMOS, Promotions.class);
+        Promotions data = NetUtil.getJson(PROMOS, Promotions.class);
         LoaderChannel ch = channel == null ? LoaderChannel.Recommended : channel;
         String forge = resolvePromo(data.promos, version, ch);
         if (forge == null) {

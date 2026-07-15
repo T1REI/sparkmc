@@ -20,10 +20,6 @@ public enum Core {
         };
     }
 
-    public String noguiArg() {
-        return this == Vanilla ? "nogui" : "--nogui";
-    }
-
     public boolean supportsChannel() {
         return this == Forge || this == NeoForge;
     }

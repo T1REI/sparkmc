@@ -14,8 +14,8 @@ final class FabricProvider implements Provider {
 
     @Override
     public List<String> versions() throws Exception {
-        Type t = Http.listOf(Game.class);
-        List<Game> games = Http.getJson(META + "/game", t);
+        Type t = NetUtil.listOf(Game.class);
+        List<Game> games = NetUtil.getJson(META + "/game", t);
         List<String> out = new ArrayList<>();
         for (Game g : games) {
             if (g.stable) {
@@ -28,9 +28,9 @@ final class FabricProvider implements Provider {
     @Override
     public LaunchTarget prepare(String version, LoaderChannel channel, Path dir, Reporter rep)
             throws Exception {
-        Type t = Http.listOf(Named.class);
-        List<Named> loaders = Http.getJson(META + "/loader", t);
-        List<Named> installers = Http.getJson(META + "/installer", t);
+        Type t = NetUtil.listOf(Named.class);
+        List<Named> loaders = NetUtil.getJson(META + "/loader", t);
+        List<Named> installers = NetUtil.getJson(META + "/installer", t);
         if (loaders.isEmpty() || installers.isEmpty()) {
             throw new IllegalStateException("fabric loader/installer unavailable");
         }

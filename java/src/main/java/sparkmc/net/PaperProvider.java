@@ -19,7 +19,7 @@ final class PaperProvider implements Provider {
 
     @Override
     public List<String> versions() throws Exception {
-        Project project = Http.getJson(BASE, Project.class);
+        Project project = NetUtil.getJson(BASE, Project.class);
         Set<String> set = new LinkedHashSet<>();
         if (project.versions != null) {
             for (List<String> group : project.versions.values()) {
@@ -38,8 +38,8 @@ final class PaperProvider implements Provider {
     @Override
     public LaunchTarget prepare(String version, LoaderChannel channel, Path dir, Reporter rep)
             throws Exception {
-        Type t = Http.listOf(Build.class);
-        List<Build> builds = Http.getJson(BASE + "/versions/" + version + "/builds", t);
+        Type t = NetUtil.listOf(Build.class);
+        List<Build> builds = NetUtil.getJson(BASE + "/versions/" + version + "/builds", t);
         if (builds == null || builds.isEmpty()) {
             throw new IllegalStateException("no builds for " + version);
         }

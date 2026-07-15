@@ -74,7 +74,7 @@ fn agent() -> ureq::Agent {
     let mut builder = ureq::AgentBuilder::new().user_agent(concat!(
         "sparkmc/",
         env!("CARGO_PKG_VERSION"),
-        " (https://github.com/T1REI/rHn9DyUOHrVi1Sc54dhG)"
+        " (https://github.com/T1REI/sparkmc)"
     ));
     if let Ok(connector) = native_tls::TlsConnector::new() {
         builder = builder.tls_connector(std::sync::Arc::new(connector));
@@ -82,7 +82,7 @@ fn agent() -> ureq::Agent {
     builder.build()
 }
 
-fn get_json<T: DeserializeOwned>(url: &str) -> Result<T, String> {
+pub(crate) fn get_json<T: DeserializeOwned>(url: &str) -> Result<T, String> {
     agent()
         .get(url)
         .call()
