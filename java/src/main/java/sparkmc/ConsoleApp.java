@@ -263,9 +263,8 @@ public final class ConsoleApp {
         system("Java " + major + " not found on this system");
         println(Ansi.YELLOW + "[sparkmc] This server needs Java " + major
                 + ". Install it (e.g. https://adoptium.net) and run sparkmc again." + Ansi.RESET);
-        system("press Enter to close");
-        waitEnter(inputQueue);
-        return null;
+        system("Attempting to launch the server with the current Java version anyway...");
+        return current;
     }
 
     private static void system(String msg) {
