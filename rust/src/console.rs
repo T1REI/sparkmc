@@ -235,21 +235,48 @@ fn obtain_java(
     }
 
     system(io, &format!("Java {major} not found on this system"));
-    ask(
-        io,
-        &format!("This server needs Java {major}. Download & install it now? [Y/n]"),
-    );
-    io.set_prompt_enabled(true);
-    if !confirm(inputs) {
+    loop {
+        ask(io, &format!("This server needs Java {major}. Choose:"));
+        ask(io, "  1. Download & install automatically");
+        ask(io, "  2. Custom path (folder or java/javaw executable)");
+        ask(io, "  3. Cancel");
+        io.set_prompt_enabled(true);
+        let choice = match read_answer(inputs) {
+            Some(c) => c,
+            None => {
+                io.set_prompt_enabled(false);
+                return None;
+            }
+        };
         io.set_prompt_enabled(false);
-        system(
-            io,
-            "cannot start without the right Java. Press Enter to close",
-        );
-        wait_enter(io, inputs);
-        return None;
+        match choice.trim() {
+            "" | "1" => return install_java(major, io, inputs, plan, dir, tried),
+            "2" => {
+                if let Some(program) = custom_java(major, io, inputs, plan, dir) {
+                    return Some(program);
+                }
+            }
+            "3" | "n" | "no" => {
+                system(
+                    io,
+                    "cannot start without the right Java. Press Enter to close",
+                );
+                wait_enter(io, inputs);
+                return None;
+            }
+            other => system(io, &format!("unknown choice '{other}', enter 1, 2 or 3")),
+        }
     }
-    io.set_prompt_enabled(false);
+}
+
+fn install_java(
+    major: u32,
+    io: &ConsoleIo,
+    inputs: &Receiver<InMsg>,
+    plan: &mut LaunchPlan,
+    dir: &Path,
+    tried: &mut HashSet<u32>,
+) -> Option<String> {
     tried.insert(major);
     let logger = |m: &str| system(io, m);
     match java::install(major, &logger) {
@@ -265,6 +292,44 @@ fn obtain_java(
             wait_enter(io, inputs);
             None
         }
+    }
+}
+
+fn custom_java(
+    major: u32,
+    io: &ConsoleIo,
+    inputs: &Receiver<InMsg>,
+    plan: &mut LaunchPlan,
+    dir: &Path,
+) -> Option<String> {
+    loop {
+        ask(
+            io,
+            &format!("Path to Java {major} (javaw.exe, java.exe or its folder), empty to go back:"),
+        );
+        io.set_prompt_enabled(true);
+        let answer = read_answer(inputs)?;
+        io.set_prompt_enabled(false);
+        if answer.trim().is_empty() {
+            return None;
+        }
+        match java::from_custom_path(&answer, major) {
+            Ok(path) => {
+                let program = path.to_string_lossy().into_owned();
+                plan.java = Some(program.clone());
+                let _ = plan.save(dir);
+                system(io, &format!("using Java {major}: {program}"));
+                return Some(program);
+            }
+            Err(e) => system(io, &format!("{RED}{e}{RESET}")),
+        }
+    }
+}
+
+fn read_answer(inputs: &Receiver<InMsg>) -> Option<String> {
+    match inputs.recv() {
+        Ok(InMsg::Line(answer)) => Some(answer),
+        Ok(InMsg::Quit) | Err(_) => None,
     }
 }
 
@@ -303,16 +368,6 @@ fn pump<R: Read + Send + 'static>(
             }
         }
     })
-}
-
-fn confirm(inputs: &Receiver<InMsg>) -> bool {
-    match inputs.recv() {
-        Ok(InMsg::Line(answer)) => {
-            let a = answer.trim().to_ascii_lowercase();
-            a.is_empty() || a.starts_with('y') || a.starts_with('д')
-        }
-        Ok(InMsg::Quit) | Err(_) => false,
-    }
 }
 
 fn wait_enter(io: &ConsoleIo, inputs: &Receiver<InMsg>) {

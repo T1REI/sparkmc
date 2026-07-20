@@ -45,6 +45,42 @@ pub fn resolve(major: u32, preferred: Option<&str>) -> Option<PathBuf> {
     None
 }
 
+pub fn from_custom_path(input: &str, major: u32) -> Result<PathBuf, String> {
+    let cleaned = input.trim().trim_matches('"').trim_matches('\'');
+    if cleaned.is_empty() {
+        return Err("path is empty".into());
+    }
+    let path = PathBuf::from(cleaned);
+    if !path.exists() {
+        return Err(format!("path does not exist: {cleaned}"));
+    }
+    let candidate = locate_executable(&path)
+        .ok_or_else(|| format!("no java executable found at {cleaned}"))?;
+    let program = candidate.to_string_lossy().into_owned();
+    match installed_major(&program) {
+        Some(found) if found == major => Ok(candidate),
+        Some(found) => Err(format!("this is Java {found}, but Java {major} is required")),
+        None => Err(format!("could not run '{program}' as Java")),
+    }
+}
+
+fn locate_executable(path: &Path) -> Option<PathBuf> {
+    if path.is_dir() {
+        return find_java(path);
+    }
+    if !path.is_file() {
+        return None;
+    }
+    let name = path.file_name()?.to_string_lossy().to_ascii_lowercase();
+    if name == "javaw.exe" || name == "javaw" {
+        let sibling = path.with_file_name(if cfg!(windows) { "java.exe" } else { "java" });
+        if sibling.is_file() {
+            return Some(sibling);
+        }
+    }
+    Some(path.to_path_buf())
+}
+
 fn parse_major(text: &str) -> Option<u32> {
     let idx = text.find("version \"")?;
     let rest = &text[idx + 9..];
